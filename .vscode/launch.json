@@ -1,0 +1,68 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(gdb) Launch embedding_random",
+            "type": "cppdbg",
+            "request": "launch",
+            "preLaunchTask": "build embedding_random",
+            "program": "${workspaceFolder}/out/embedding_random",
+            "args": ["<", "graph1.alist"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) Launch embedding_sort",
+            "type": "cppdbg",
+            "request": "launch",
+            "preLaunchTask": "build embedding_sort",
+            "program": "${workspaceFolder}/out/embedding_sort",
+            "args": ["<", "graph1.alist"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) Launch embedding_genetic",
+            "type": "cppdbg",
+            "request": "launch",
+            "preLaunchTask": "build embedding_genetic",
+            "program": "${workspaceFolder}/out/embedding_genetic",
+            "args": ["<", "graph1.alist"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}
