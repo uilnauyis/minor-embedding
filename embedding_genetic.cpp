@@ -15,6 +15,7 @@
 #include <map>
 #include <ctime>
 #include <fstream>
+#include <bits/stdc++.h>
 
 // random generator function:
 vector<int> randomizeVertexOrder(int size)
@@ -28,13 +29,43 @@ vector<int> randomizeVertexOrder(int size)
     return myvector;
 }
 
-// sort vertex order by size
+class Qubit
+{
+public:
+    int index;
+    bool isAssigned = false;
+    Vertex graph = NULL;
+    vector<Qubit> freeNeighbors;
+
+    Qubit(int index) : index(index) {};
+    ~Qubit() {};
+};
+
 class Vertex
 {
 public:
     int index;
-    int size;
+    vector<Qubit> qubits;
+    vector<Vertex> neighbors;
+    int size();
+
+    Vertex();
+    Vertex(int index) : index(index) {};
+    ~Vertex() {};
+
+    void addQubit(Qubit qubit);
 };
+
+int Vertex::size()
+{
+    return qubits.size();
+}
+
+void Vertex::addQubit(Qubit qubit)
+{
+    qubits.push_back(qubit);
+}
+
 bool sortByVertexSize(const Vertex &v1, const Vertex &v2)
 {
     return v1.size > v2.size;
@@ -102,11 +133,11 @@ int getVertexWeight(int index, vector<int> overlap, bool isIn)
 }
 
 // check all neighbors empty
-bool checkAllNeighbors(Graph &H, vector<vector<int>> mapping, int currentVertex)
+bool checkAllNeighbors(Graph &H, Vertex currentVertex)
 {
-    for (int i = 0; i < H.deg(currentVertex); i++)
+    for (int i = 0; i < currentVertex.neighbors.size(); i++)
     {
-        if (mapping.at(H.adj[currentVertex].at(i)).size() != 0)
+        if (currentVertex.neighbors.at(i).size() != 0)
             return false;
     }
     return true;
@@ -121,7 +152,6 @@ void dijkstraComputePaths(int source, Graph &adjacency_list,
     min_distance.clear();
     min_distance.resize(n, 1 << 30);
     min_distance[source] = weights.at(source);
-    ;
     previous.clear();
     previous.resize(n, -1);
     set<pair<int, int>> vertex_queue;
@@ -244,16 +274,18 @@ void updateModels(Graph &G, Graph &H, int root, int currentVertex, vector<int> w
 }
 
 //find the minimal vertex model
-void findMinimalVertexModel(Graph &G, Graph &H, vector<int> weight, vector<vector<int>> &mapping, vector<int> &overlap, int currentVertex)
+void findMinimalVertexModel(Graph &G, Graph &H, vector<Qubit> &qubits, vector<Vertex> &vertexModels, Vertex &currentVertex)
 {
     // if all neighbors are empty
-    if (checkAllNeighbors(H, mapping, currentVertex))
+    if (checkAllNeighbors(H, currentVertex))
     {
-        vector<int> vertexOrder = randomizeVertexOrder(G.order());
-        for (int i = 0; i < vertexOrder.size(); i++)
+        vector<int> qubitsOrder = randomizeVertexOrder(qubits.size());
+        for (int i = 0; i < qubitsOrder.size(); i++)
         {
-            if (weight.at(vertexOrder.at(i)) == 1 && G.adj[vertexOrder.at(i)].size() != 0)
+            Qubit qubit = qubits.at(i);
+            if (qubit.isAssigned == false && qubit.)
             { // isolated vertex, ingore
+
                 mapping.at(currentVertex).push_back(vertexOrder.at(i));
                 overlap.at(vertexOrder.at(i))++; // update num of vertices of H represented at vertex of G
                 return;
@@ -355,53 +387,48 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<int> weight, vector<vecto
 }
 
 // main method for finding Minor embedding
-bool findMinorEmbedding(Graph &G, Graph &H)
+bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
 {
     srand(unsigned(time(0))); // for randomizing
-#if 1
+
     vector<int> vertexOrder = randomizeVertexOrder(H.order());
-#else
-    vector<int> vertexOrder = sortVertexOrder(H); // sort order by size
-#endif
-    vector<int> weight;
-
-    vector<int> overlap(G.order(), 0);
-    vector<int> newOverlap(G.order(), 0);
-
     vector<vector<int>> mapping = initializeMapping(H.order());
     vector<vector<int>> newMapping = initializeMapping(H.order());
+    vector<Qubit> qubits;
+    vector<Vertex> vertexModels;
+
+    // Init qubits
+    for (int i = 0; i < G.adj.size(); i++)
+    {
+        Qubit q(i);
+        vector<int> neighbors = G.adj.at(i);
+        qubits.push_back(q);
+        for (int j = 0; j < neighbors.size(); j++)
+        {
+            q.freeNeighbors.push_back(neighbors.at(j));
+        }
+    }
+
+    // Init vertix models
+    for (int i = 0; i < H.adj.size(); i++)
+    {
+        Vertex v(i);
+        vertexModels.push_back(v);
+    }
 
     int stage = 1;
-    while (getMaxOverlap(newOverlap) < getMaxOverlap(overlap) || getTotalSize(newMapping) < getTotalSize(mapping) || stage <= 2)
+    while (getTotalSize(newMapping) < getTotalSize(mapping) || stage <= 2)
     {
         mapping = newMapping;
-        overlap = newOverlap;
         for (int i = 0; i < vertexOrder.size(); i++)
         {
             int currentVertex = vertexOrder.at(i);
-            // assign weight
-            weight.clear();
-            for (int j = 0; j < G.order(); j++)
-            {
-                bool isIn = find(newMapping.at(currentVertex).begin(), newMapping.at(currentVertex).end(), j) != newMapping.at(currentVertex).end();
-                weight.push_back(getVertexWeight(j, newOverlap, isIn));
-            }
-            findMinimalVertexModel(G, H, weight, newMapping, newOverlap, currentVertex);
+            findMinimalVertexModel(G, H, qubits, vertexModels, vertexModels.at(currentVertex));
         }
         stage++;
     }
 
-    //check the usage for each vertex in G, if all <=1, then we find the embedding. otherwise "failure"
     bool embedding = true;
-    for (int i = 0; i < overlap.size(); i++)
-    {
-        if (overlap.at(i) > 1)
-        {
-            embedding = false;
-            break;
-        }
-    }
-
     //print the embedding, if find
     if (embedding)
     {
@@ -448,13 +475,14 @@ int main(int argc, char **argv)
     host >> G;
     Graph H(0);
     cin >> H;
+    float ratio = std::stof(argv[1]);
     bool foundEmbedding;
     cout << "Guest graph: " << endl;
     cout << H << endl;
     for (int i = 1; i <= 2; i++)
     {
         cout << "try " << i << ":" << endl;
-        foundEmbedding = findMinorEmbedding(G, H);
+        foundEmbedding = findMinorEmbedding(G, H, ratio);
         if (foundEmbedding)
         {
             break;

@@ -50,7 +50,7 @@
             "request": "launch",
             "preLaunchTask": "build embedding_genetic",
             "program": "${workspaceFolder}/out/embedding_genetic",
-            "args": ["<", "graph1.alist"],
+            "args": ["1.2", "<", "graph1.alist"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
