@@ -37,8 +37,8 @@ public:
     Vertex graph = NULL;
     vector<Qubit> freeNeighbors;
 
-    Qubit(int index) : index(index) {};
-    ~Qubit() {};
+    Qubit(int index) : index(index){};
+    ~Qubit(){};
 };
 
 class Vertex
@@ -50,8 +50,8 @@ public:
     int size();
 
     Vertex();
-    Vertex(int index) : index(index) {};
-    ~Vertex() {};
+    Vertex(int index) : index(index){};
+    ~Vertex(){};
 
     void addQubit(Qubit qubit);
 };
