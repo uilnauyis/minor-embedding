@@ -10,7 +10,7 @@
             "request": "launch",
             "preLaunchTask": "build embedding_random",
             "program": "${workspaceFolder}/out/embedding_random",
-            "args": ["<", "graph1.alist"],
+            "args": ["1.2", "<", "graph1.alist"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
