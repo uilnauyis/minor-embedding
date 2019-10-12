@@ -70,7 +70,7 @@ vector<vector<int>> initializeMapping(int size)
 }
 
 // improving 1, minimize max number of overlap
-int getMaxOverlap(vector<int> overlap)
+int getMaxOverlap(vector<vector<int>> overlap)
 {
   int max = 0;
   for (int i = 0; i < overlap.size(); i++)
@@ -311,9 +311,9 @@ void extendAll(Graph G, Graph H, float ratio,
   std::set<int>::iterator it;
   for (it = affectedVertices.begin(); it != affectedVertices.end(); ++it)
   {
-        extendChain(G, H, verticesToQubitsMapping, qubitToVertexMapping,
-                    verticesToAvailableEdgeMapping, *it, ratio);
-    }
+    extendChain(G, H, verticesToQubitsMapping, qubitToVertexMapping,
+                verticesToAvailableEdgeMapping, *it, ratio);
+  }
 }
 
 //find the union paths from root g* to each vertex model
@@ -457,7 +457,7 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<vector<int>> &vertexToQub
     {
       int qubit = qubitOrder.at(qubitIndex);
       int vOverlappedNum = qubitToVertexMapping.at(qubit).size();
-      if (vOverlappedNum == 0 && G.adj[qubit].size() != 0) // isolated vertex, ingore
+      if (vOverlappedNum == 0 && G.adj[qubit].size() != 0) // Pick unisolated qubits
       {
         std::set<int> affectedVertices;
         affectedVertices.insert(currentVertex);
@@ -605,12 +605,23 @@ bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
   vector<vector<int>> qubitsToVerticesMapping = initializeMapping(G.order());
   vector<vector<int>> verticesToAvailableEdgeMapping =
       initializeMapping(H.order());
-  int previousChainLength = getTotalSize(verticesToQubitsMapping);
-
+  int previousChainLength = INT_MAX;
+  int previousOverlap = INT_MAX;
+  int currentChainLength;
+  int currentOverlap;
   int stage = 1;
-  while (previousChainLength < getTotalSize(verticesToQubitsMapping) || stage <= 2)
+  while (true)
   {
-    previousChainLength = getTotalSize(verticesToQubitsMapping);
+    currentChainLength = getTotalSize(verticesToQubitsMapping);
+    currentOverlap = getMaxOverlap(qubitsToVerticesMapping);
+    if (previousChainLength <= currentChainLength &&
+        previousOverlap <= currentOverlap &&
+        stage > 2) // No improvement in last update.
+    {
+      break;
+    }
+    previousChainLength = currentChainLength;
+    previousOverlap = currentOverlap;
     for (int i = 0; i < vertexOrder.size(); i++)
     {
       int currentVertex = vertexOrder.at(i);
