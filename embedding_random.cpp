@@ -15,6 +15,7 @@
 #include <map>
 #include <ctime>
 #include <fstream>
+#include <bits/stdc++.h>
 
 // random generator function:
 vector<int> randomizeVertexOrder(int size)
@@ -70,12 +71,13 @@ vector<vector<int>> initializeMapping(int size)
 }
 
 // improving 1, minimize max number of overlap
-int getMaxOverlap(vector<vector<int>> overlap)
+int getMaxOverlap(vector<vector<int>> qubitsToVerticesMapping)
 {
   int max = 0;
-  for (int i = 0; i < overlap.size(); i++)
+  for (int i = 0; i < qubitsToVerticesMapping.size(); i++)
   {
-    max = overlap.at(i) > max ? overlap.at(i) : max;
+    int thisOverlap = qubitsToVerticesMapping.at(i).size();
+    max = thisOverlap > max ? thisOverlap : max;
   }
   return max;
 }
@@ -92,9 +94,11 @@ int getTotalSize(vector<vector<int>> mapping)
 }
 
 // define vertex weight - weight of a vertex in G grows exponentialy with num of vertices of H represented there
-int getQubitWeight(int overlapNum)
+int getQubitWeight(int overlapNum, bool isIn)
 {
   int DIAMETER = 30;
+  if (isIn)
+    return pow(DIAMETER, overlapNum - 1);
   return pow(DIAMETER, overlapNum);
 }
 
@@ -112,7 +116,9 @@ bool checkAllNeighbors(Graph &H, vector<vector<int>> mapping, int currentVertex)
 // find the weight for shortest path from A to B
 void dijkstraComputePaths(int source, Graph &adjacency_list, vector<int> &previous,
                           vector<int> &min_distance,
-                          vector<vector<int>> qubitToVertexMapping, int currentVertex)
+                          vector<vector<int>> qubitToVertexMapping,
+                          vector<vector<int>> vertexToQubitMapping,
+                          int currentVertex)
 {
   int n = adjacency_list.order();
   min_distance.clear();
@@ -148,7 +154,14 @@ void dijkstraComputePaths(int source, Graph &adjacency_list, vector<int> &previo
       else
       {
         int overlappedVertexNum = qubitToVertexMapping.at(v).size();
-        weight = getQubitWeight(overlappedVertexNum + 1);
+        bool isIn = false;
+        vector<int> currentVertexQubits = vertexToQubitMapping.at(currentVertex);
+        if (std::find(currentVertexQubits.begin(),
+                      currentVertexQubits.end(), v) == currentVertexQubits.end())
+        {
+          isIn = true;
+        }
+        weight = getQubitWeight(overlappedVertexNum + 1, isIn);
       }
       int distance_through_u = dist + weight;
       if (distance_through_u < min_distance[v])
@@ -196,7 +209,6 @@ void expand(vector<vector<int>> &qubitToVertexMapping,
             int currentVertex,
             Graph G)
 {
-
   // Add random qubit to the current vertex model.
   qubitToVertexMapping.at(currentQubit).push_back(currentVertex);
   verticesToQubitsMapping.at(currentVertex).push_back(currentQubit);
@@ -336,7 +348,8 @@ void updateModels(Graph &G, Graph &H, int root, int currentVertex,
       createDummyGraph(dummyGraph, G, H, vertexToQubitMapping, currentVertex, i);
       vector<int> min_distance;
       vector<int> previous;
-      dijkstraComputePaths(root, dummyGraph, previous, min_distance, qubitToVertexMapping, currentVertex);
+      dijkstraComputePaths(root, dummyGraph, previous, min_distance,
+                           qubitToVertexMapping, vertexToQubitMapping, currentVertex);
       path = DijkstraGetShortestPathTo(G.order(), previous);
     }
     for (int j = 2; j < path.size(); j++)
@@ -355,36 +368,36 @@ void updateModels(Graph &G, Graph &H, int root, int currentVertex,
 
   std::set<int> affectedVertices;
   //update all vertex models
-  vertexToQubitMapping.at(currentVertex).push_back(root);
-  qubitToVertexMapping.at(root).push_back(currentVertex);
+
   for (map<int, int>::iterator ii = vertex_usage.begin(); ii != vertex_usage.end(); ++ii)
   {
     if ((*ii).first == root)
+    {
+      expand(qubitToVertexMapping, vertexToQubitMapping,
+             vertexToAvailableEdges, affectedVertices, (*ii).first,
+             currentVertex, G);
       continue;
+    }
     if ((*ii).second > 1)
     { // appears in more than one path, assign to new model ****************************
-      if (find(vertexToQubitMapping.at(currentVertex).begin(), vertexToQubitMapping.at(currentVertex).end(), (*ii).first) == vertexToQubitMapping.at(currentVertex).end())
-      {
-        vertexToQubitMapping.at(currentVertex).push_back((*ii).first);
-        qubitToVertexMapping.at((*ii).first).push_back(currentVertex);
-
-        expand(qubitToVertexMapping, vertexToQubitMapping,
-               vertexToAvailableEdges, affectedVertices, (*ii).first,
-               currentVertex, G);
-        affectedVertices.insert(currentVertex);
-      }
+      expand(qubitToVertexMapping, vertexToQubitMapping,
+             vertexToAvailableEdges, affectedVertices, (*ii).first,
+             currentVertex, G);
     }
+
     else
     { // appears once, update
-      if (find(vertexToQubitMapping.at(dist[(*ii).first]).begin(), vertexToQubitMapping.at(dist[(*ii).first]).end(), (*ii).first) == vertexToQubitMapping.at(dist[(*ii).first]).end())
+      if (find(vertexToQubitMapping.at(dist[(*ii).first]).begin(),
+               vertexToQubitMapping.at(dist[(*ii).first]).end(),
+               (*ii).first) == vertexToQubitMapping.at(dist[(*ii).first]).end())
       {
-        vertexToQubitMapping.at(dist[(*ii).first]).push_back((*ii).first);
-        qubitToVertexMapping.at((*ii).first).push_back(dist[(*ii).first]);
-
         expand(qubitToVertexMapping, vertexToQubitMapping,
                vertexToAvailableEdges, affectedVertices, (*ii).first,
                dist[(*ii).first], G);
-        affectedVertices.insert(dist[(*ii).first]);
+      }
+      else
+      {
+        cout << "meow";
       }
     }
   }
@@ -517,6 +530,7 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<vector<int>> &vertexToQub
     int currentRootCandidate = rootCandidate.at(i);
     for (int j = 0; j < H.deg(currentVertex); j++)
     {
+      // This vertex not imbedded yet.
       if (vertexToQubitMapping.at(H.adj[currentVertex].at(j)).size() == 0)
       {
         cost[i][j] = 0;
@@ -538,7 +552,7 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<vector<int>> &vertexToQub
         vector<int> min_distance;
         vector<int> previous;
         dijkstraComputePaths(currentRootCandidate, dummyGraph, previous, min_distance,
-                             qubitToVertexMapping, currentVertex);
+                             qubitToVertexMapping, vertexToQubitMapping, currentVertex);
         cost[i][j] = min_distance.at(G.order());
       }
       sumCost += cost[i][j];
@@ -547,7 +561,7 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<vector<int>> &vertexToQub
     }
     // Add the cost of root to sum of weights.
     sumCost += getQubitWeight(
-        qubitToVertexMapping.at(currentRootCandidate).size() + 1);
+        qubitToVertexMapping.at(currentRootCandidate).size() + 1, false);
     rootCandidateWeight.push_back(sumCost);
     // find root g* with minimum cost
     if (sumCost <= minCost)
@@ -605,15 +619,15 @@ bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
   vector<vector<int>> qubitsToVerticesMapping = initializeMapping(G.order());
   vector<vector<int>> verticesToAvailableEdgeMapping =
       initializeMapping(H.order());
-  int previousChainLength = INT_MAX;
-  int previousOverlap = INT_MAX;
+  int previousChainLength;
+  int previousOverlap;
   int currentChainLength;
   int currentOverlap;
   int stage = 1;
   while (true)
   {
-    currentChainLength = getTotalSize(verticesToQubitsMapping);
-    currentOverlap = getMaxOverlap(qubitsToVerticesMapping);
+    currentChainLength = stage <= 1 ? INT_MAX : getTotalSize(verticesToQubitsMapping);
+    currentOverlap = stage <= 1 ? INT_MAX : getMaxOverlap(qubitsToVerticesMapping);
     if (previousChainLength <= currentChainLength &&
         previousOverlap <= currentOverlap &&
         stage > 2) // No improvement in last update.
