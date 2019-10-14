@@ -1,83 +1,100 @@
 {
-    // See https://go.microsoft.com/fwlink/?LinkId=733558 
-    // for the documentation about the tasks.json format
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "type": "shell",
-            "label": "build embedding_random",
-            "command": "/usr/bin/g++",
-            "args": [
-                "-g",
-                "${workspaceFolder}/embedding_random.cpp",
-                "${workspaceFolder}/Graph.h",
-                "${workspaceFolder}/Graph.cpp",
-                "-o",
-                "${workspaceFolder}/out/embedding_random"
-            ],
-            "options": {
-                "cwd": "/usr/bin"
-            },
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "dependsOn": "create output dir"
-        },
-        {
-            "type": "shell",
-            "label": "build embedding_sort",
-            "command": "/usr/bin/g++",
-            "args": [
-                "-g",
-                "${workspaceFolder}/embedding_sort.cpp",
-                "${workspaceFolder}/Graph.h",
-                "${workspaceFolder}/Graph.cpp",
-                "-o",
-                "${workspaceFolder}/out/embedding_sort"
-            ],
-            "options": {
-                "cwd": "/usr/bin"
-            },
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "dependsOn": "create output dir"
-        },
-        {
-            "type": "shell",
-            "label": "build embedding_genetic",
-            "command": "/usr/bin/g++",
-            "args": [
-                "-g",
-                "${workspaceFolder}/embedding_genetic.cpp",
-                "${workspaceFolder}/Graph.h",
-                "${workspaceFolder}/Graph.cpp",
-                "-o",
-                "${workspaceFolder}/out/embedding_genetic"
-            ],
-            "options": {
-                "cwd": "/usr/bin"
-            },
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "dependsOn": "create output dir"
-        }, {
-            "type": "shell",
-            "label": "create output dir",
-            "command": "mkdir -p out"
-        }
-    ]
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "shell",
+      "label": "build embedding_random",
+      "command": "/usr/bin/g++",
+      "args": [
+        "-g",
+        "${workspaceFolder}/embedding_random.cpp",
+        "${workspaceFolder}/Graph.h",
+        "${workspaceFolder}/Graph.cpp",
+        "-o",
+        "${workspaceFolder}/out/embedding_random"
+      ],
+      "options": {
+        "cwd": "/usr/bin"
+      },
+      "problemMatcher": ["$gcc"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "dependsOn": "create output dir"
+    },
+    {
+      "type": "shell",
+      "label": "build embedding_random_original",
+      "command": "/usr/bin/g++",
+      "args": [
+        "-g",
+        "${workspaceFolder}/embedding_random_original.cpp",
+        "${workspaceFolder}/Graph.h",
+        "${workspaceFolder}/Graph.cpp",
+        "-o",
+        "${workspaceFolder}/out/embedding_random_original"
+      ],
+      "options": {
+        "cwd": "/usr/bin"
+      },
+      "problemMatcher": ["$gcc"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "dependsOn": "create output dir"
+    },
+    {
+      "type": "shell",
+      "label": "build embedding_sort",
+      "command": "/usr/bin/g++",
+      "args": [
+        "-g",
+        "${workspaceFolder}/embedding_sort.cpp",
+        "${workspaceFolder}/Graph.h",
+        "${workspaceFolder}/Graph.cpp",
+        "-o",
+        "${workspaceFolder}/out/embedding_sort"
+      ],
+      "options": {
+        "cwd": "/usr/bin"
+      },
+      "problemMatcher": ["$gcc"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "dependsOn": "create output dir"
+    },
+    {
+      "type": "shell",
+      "label": "build embedding_genetic",
+      "command": "/usr/bin/g++",
+      "args": [
+        "-g",
+        "${workspaceFolder}/embedding_genetic.cpp",
+        "${workspaceFolder}/Graph.h",
+        "${workspaceFolder}/Graph.cpp",
+        "-o",
+        "${workspaceFolder}/out/embedding_genetic"
+      ],
+      "options": {
+        "cwd": "/usr/bin"
+      },
+      "problemMatcher": ["$gcc"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "dependsOn": "create output dir"
+    },
+    {
+      "type": "shell",
+      "label": "create output dir",
+      "command": "mkdir -p out"
+    }
+  ]
 }

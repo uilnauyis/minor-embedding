@@ -137,6 +137,10 @@ bool checkAllNeighbors(Graph &H, vector<set<int>> mapping, int currentVertex)
 
 auto selectrandomFromSet(set<int> set)
 {
+  if (set.size() == 0)
+  {
+    return -1; // No neighbor qubit available
+  }
   auto it = set.begin();
   auto rounds = rand() % set.size();
   std::advance(it, rounds);
@@ -288,7 +292,7 @@ void expand(vector<vector<int>> &qubitToVertexMapping,
 /* 
     Extend a partial embedding to satisfy the ratio.
 */
-bool extendChain(Graph &G, Graph &H, vector<set<int>> &vertexToQubitsMapping,
+void extendChain(Graph &G, Graph &H, vector<set<int>> &vertexToQubitsMapping,
                  vector<vector<int>> &qubitToVertexMapping,
                  vector<set<int>> &vertexToAvailableEdgesMapping,
                  int currentVertex, float ratio, std::set<int> &affectedVertices)
@@ -319,7 +323,10 @@ bool extendChain(Graph &G, Graph &H, vector<set<int>> &vertexToQubitsMapping,
 
     // Get an available that adjacent to current vertex model randomly.
     int randomQubit = selectrandomFromSet(currentVertexAvailableEdges);
-
+    if (randomQubit == -1)
+    {
+      return;
+    }
     expand(qubitToVertexMapping, vertexToQubitsMapping,
            vertexToAvailableEdgesMapping, affectedVertices,
            randomQubit, currentVertex, G);
@@ -721,6 +728,6 @@ int main(int argc, char **argv)
     cout << "No embedding found" << endl;
 
   clock_t ends = clock();
-  //cout << "Running Time : " << (double)(ends - start) / CLOCKS_PER_SEC << endl;
+  cout << "Running Time : " << (double)(ends - start) / CLOCKS_PER_SEC << endl;
   return 0;
 }

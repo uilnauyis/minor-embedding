@@ -464,6 +464,6 @@ int main(int argc, char **argv)
     cout << "No embedding found" << endl;
 
   clock_t ends = clock();
-  //cout << "Running Time : " << (double)(ends - start) / CLOCKS_PER_SEC << endl;
+  cout << "Running Time : " << (double)(ends - start) / CLOCKS_PER_SEC << endl;
   return 0;
 }

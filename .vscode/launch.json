@@ -10,7 +10,27 @@
       "request": "launch",
       "preLaunchTask": "build embedding_random",
       "program": "${workspaceFolder}/out/embedding_random",
-      "args": ["3", "<", "graph1.alist"],
+      "args": ["1.5", "<", "graph1.alist"],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
+      "name": "(gdb) Launch embedding_random_original",
+      "type": "cppdbg",
+      "request": "launch",
+      "preLaunchTask": "build embedding_random_original",
+      "program": "${workspaceFolder}/out/embedding_random_original",
+      "args": ["1.5", "<", "graph1.alist"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
