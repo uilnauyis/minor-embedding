@@ -116,8 +116,8 @@ bool checkAllNeighbors(Graph &H, vector<vector<int>> mapping, int currentVertex)
 // find the weight for shortest path from A to B
 void dijkstraComputePaths(int source, Graph &adjacency_list, vector<int> &previous,
                           vector<int> &min_distance,
-                          vector<vector<int>> qubitToVertexMapping,
-                          vector<vector<int>> vertexToQubitMapping,
+                          vector<vector<int>> &qubitToVertexMapping,
+                          vector<vector<int>> &vertexToQubitMapping,
                           int currentVertex)
 {
   int n = adjacency_list.order();
@@ -187,7 +187,7 @@ vector<int> DijkstraGetShortestPathTo(
 
 //create a dummy graph, add a dummy vertex which adjacent to every vertex in the model
 void createDummyGraph(Graph &dummyGraph, Graph &G, Graph &H,
-                      vector<vector<int>> vertexToQubitsMapping,
+                      vector<vector<int>> &vertexToQubitsMapping,
                       int currentVertex, int index)
 {
   dummyGraph = G;
@@ -261,9 +261,8 @@ void expand(vector<vector<int>> &qubitToVertexMapping,
 bool extendChain(Graph &G, Graph &H, vector<vector<int>> &verticesToQubitsMapping,
                  vector<vector<int>> &qubitToVertexMapping,
                  vector<vector<int>> &verticesToAvailableEdgeMapping,
-                 int currentVertex, float ratio)
+                 int currentVertex, float ratio, std::set<int> &affectedVertices)
 {
-  std::set<int> affectedVertices;
   while (true)
   {
     // Calculate unembedded neighbors of the current vertex.
@@ -295,36 +294,20 @@ bool extendChain(Graph &G, Graph &H, vector<vector<int>> &verticesToQubitsMappin
            verticesToAvailableEdgeMapping, affectedVertices,
            randomQubit, currentVertex, G);
   }
-
-  std::set<int>::iterator it;
-  for (it = affectedVertices.begin(); it != affectedVertices.end(); ++it)
-  {
-    int neighborQubit = *it;
-    vector<int> neighborQubitVertices = qubitToVertexMapping.at(neighborQubit);
-    if (neighborQubitVertices.size() > 0)
-    {
-      for (int neighborQubitVertexIndex = 0;
-           neighborQubitVertexIndex < neighborQubitVertices.size();
-           neighborQubitVertexIndex++)
-      {
-        int neighborQubitVertex = neighborQubitVertices.at(neighborQubitVertexIndex);
-        extendChain(G, H, verticesToQubitsMapping, qubitToVertexMapping,
-                    verticesToAvailableEdgeMapping, neighborQubitVertex, ratio);
-      }
-    }
-  }
 }
 
 void extendAll(Graph G, Graph H, float ratio,
-               std::set<int> affectedVertices, vector<vector<int>> qubitToVertexMapping,
-               vector<vector<int>> verticesToQubitsMapping,
-               vector<vector<int>> verticesToAvailableEdgeMapping)
+               std::set<int> &affectedVertices, vector<vector<int>> &qubitToVertexMapping,
+               vector<vector<int>> &verticesToQubitsMapping,
+               vector<vector<int>> &verticesToAvailableEdgeMapping)
 {
-  std::set<int>::iterator it;
-  for (it = affectedVertices.begin(); it != affectedVertices.end(); ++it)
+  while (affectedVertices.size() > 0)
   {
+    int affectedVertex =  *affectedVertices.begin();
     extendChain(G, H, verticesToQubitsMapping, qubitToVertexMapping,
-                verticesToAvailableEdgeMapping, *it, ratio);
+                verticesToAvailableEdgeMapping, affectedVertex,
+                ratio, affectedVertices);
+    affectedVertices.erase(affectedVertex);
   }
 }
 
@@ -342,6 +325,7 @@ void updateModels(Graph &G, Graph &H, int root, int currentVertex,
   for (int i = 0; i < H.deg(currentVertex); i++)
   {
     path.clear();
+    // If
     if (vertexToQubitMapping.at(H.adj[currentVertex].at(i)).size() != 0)
     {
       Graph dummyGraph(0);
