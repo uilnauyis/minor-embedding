@@ -67,7 +67,9 @@
       "thread": "cpp",
       "typeindex": "cpp",
       "typeinfo": "cpp",
-      "valarray": "cpp"
+      "valarray": "cpp",
+      "map": "cpp",
+      "set": "cpp"
     },
     "editor.renderWhitespace": "all"
 }
