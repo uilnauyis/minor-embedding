@@ -5,12 +5,28 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Python: Current File",
+      "type": "python",
+      "request": "launch",
+      "args": [
+        "graph2.alist",
+        "host.in",
+        "output.alist"
+      ],
+      "program": "${workspaceFolder}/checkembed.py",
+      "console": "integratedTerminal"
+    },
+    {
       "name": "(gdb) Launch embedding_random",
       "type": "cppdbg",
       "request": "launch",
       "preLaunchTask": "build embedding_random",
       "program": "${workspaceFolder}/out/embedding_random",
-      "args": ["1.5", "<", "graph1.alist"],
+      "args": [
+        "1",
+        "<",
+        "graph2.alist"
+      ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
@@ -30,7 +46,10 @@
       "request": "launch",
       "preLaunchTask": "build embedding_random_original",
       "program": "${workspaceFolder}/out/embedding_random_original",
-      "args": ["1.5", "<", "graph1.alist"],
+      "args": [
+        "<",
+        "graph2.alist"
+      ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
@@ -50,7 +69,10 @@
       "request": "launch",
       "preLaunchTask": "build embedding_sort",
       "program": "${workspaceFolder}/out/embedding_sort",
-      "args": ["<", "graph1.alist"],
+      "args": [
+        "<",
+        "graph1.alist"
+      ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
@@ -70,7 +92,11 @@
       "request": "launch",
       "preLaunchTask": "build embedding_genetic",
       "program": "${workspaceFolder}/out/embedding_genetic",
-      "args": ["1.2", "<", "graph1.alist"],
+      "args": [
+        "1.2",
+        "<",
+        "graph1.alist"
+      ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],

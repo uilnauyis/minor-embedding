@@ -71,5 +71,6 @@
       "map": "cpp",
       "set": "cpp"
     },
-    "editor.renderWhitespace": "all"
+    "editor.renderWhitespace": "all",
+    "python.pythonPath": "/usr/bin/python"
 }

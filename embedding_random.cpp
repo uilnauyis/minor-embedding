@@ -15,6 +15,9 @@
 #include <map>
 #include <ctime>
 #include <fstream>
+#include <queue>
+#include <utility>
+#include <functional>
 #include <bits/stdc++.h>
 
 // random generator function:
@@ -116,12 +119,10 @@ int getTotalSetSize(vector<set<int>> mapping)
 }
 
 // define vertex weight - weight of a vertex in G grows exponentialy with num of vertices of H represented there
-int getQubitWeight(int overlapNum, bool isIn)
+int getQubitWeight(int overlapNum)
 {
   int DIAMETER = 30;
-  if (isIn)
-    return pow(DIAMETER, overlapNum - 1);
-  return pow(DIAMETER, overlapNum);
+  return pow(DIAMETER, overlapNum - 1);
 }
 
 // check all neighbors empty
@@ -147,21 +148,47 @@ auto selectrandomFromSet(set<int> set)
   return *it;
 }
 
-// find the weight for shortest path from A to B
-void dijkstraComputePaths(int source, Graph &adjacency_list, vector<int> &previous,
-                          vector<int> &min_distance,
-                          vector<vector<int>> &qubitToVertexMapping,
-                          vector<set<int>> &vertexToQubitsMapping,
-                          int currentVertex)
+// Compute shortest paths from current vertex to all neighbor vertices.
+// Return the total cost as result.
+// 'previous' is the vector for tracing back the path.
+int dijkstraComputePaths(int source, int currentVertex,
+                         Graph &G, Graph &H,
+                         vector<int> &previous,
+                         vector<tuple<int, int, int>> &vertexTuples, // <vertex, qubit, distance>
+                         vector<vector<int>> &qubitToVertexMapping,
+                         vector<set<int>> &vertexToQubitsMapping)
 {
-  int n = adjacency_list.order();
-  min_distance.clear();
+  int n = G.order();
+  vector<int> min_distance;
   min_distance.resize(n, 1 << 30);
-  int sourceQubitOverlappedNum = qubitToVertexMapping.at(source).size();
   min_distance[source] = 0;
   previous.clear();
   previous.resize(n, -1);
   set<pair<int, int>> vertex_queue;
+  set<int> visited;
+
+  for (int j = 0; j < H.deg(currentVertex); j++)
+  {
+    // This vertex not imbedded yet.
+    if (vertexToQubitsMapping.at(H.adj[currentVertex].at(j)).size() == 0)
+    {
+      continue;
+    }
+    // Root candidate qubit is overlapped with this vertex.
+    else if (find(vertexToQubitsMapping.at(H.adj[currentVertex].at(j)).begin(),
+                  vertexToQubitsMapping.at(H.adj[currentVertex].at(j)).end(),
+                  source) !=
+             vertexToQubitsMapping.at(H.adj[currentVertex].at(j)).end())
+    {
+      continue;
+    }
+    else
+    {
+      int thisVertex = H.adj[currentVertex].at(j);
+      vertexTuples.push_back(make_tuple(thisVertex, -1, INT_MAX));
+    }
+  }
+
   vertex_queue.insert(make_pair(min_distance[source], source));
 
   while (!vertex_queue.empty())
@@ -169,34 +196,54 @@ void dijkstraComputePaths(int source, Graph &adjacency_list, vector<int> &previo
     int dist = vertex_queue.begin()->first;
     int u = vertex_queue.begin()->second;
     vertex_queue.erase(vertex_queue.begin());
+    visited.insert(u);
 
-    // The shortest path from root to current vertex is already find.
-    if (dist > min_distance[adjacency_list.adj.size() - 1])
+    // End the function if dist is already greater than or equal to
+    // the distances to all neighbor vertices.
+    bool canReturn = true;
+    for (vector<tuple<int, int, int>>::iterator vertexTupleIt = vertexTuples.begin();
+         vertexTupleIt != vertexTuples.end(); ++vertexTupleIt)
     {
-      return;
+      if (get<2>(*vertexTupleIt) > dist)
+      {
+        canReturn = false;
+        break;
+      }
+    }
+    if (canReturn)
+    {
+      break;
     }
 
     // Visit each edge exiting u
-    for (int i = 0; i < adjacency_list.deg(u); i++)
+    for (int i = 0; i < G.deg(u); i++)
     {
-      int v = adjacency_list.adj[u].at(i);
-      int weight;
-      if (v >= qubitToVertexMapping.size()) // v is dummy qubit
+      int v = G.adj[u].at(i);
+
+      // If v has been visited, ignore
+      if (visited.find(v) != visited.end())
       {
-        weight = 0;
+        continue;
       }
-      else
+
+      // Check if this qubit is mapped to any neighbor vertex.
+      // If it is, we update the shortest distance to this vertex
+      vector<int> overlappedVertices = qubitToVertexMapping.at(v);
+      for (vector<tuple<int, int, int>>::iterator vertexTuplesIt = vertexTuples.begin();
+           vertexTuplesIt != vertexTuples.end(); ++vertexTuplesIt)
       {
-        int overlappedVertexNum = qubitToVertexMapping.at(v).size();
-        bool isIn = false;
-        set<int> currentVertexQubits = vertexToQubitsMapping.at(currentVertex);
-        if (std::find(currentVertexQubits.begin(),
-                      currentVertexQubits.end(), v) != currentVertexQubits.end())
+        tuple<int, int, int> &vertexTuple = *vertexTuplesIt;
+        if (find(overlappedVertices.begin(),
+                 overlappedVertices.end(),
+                 get<0>(vertexTuple)) != overlappedVertices.end() &&
+            get<2>(vertexTuple) > dist)
         {
-          isIn = true;
+          get<1>(*vertexTuplesIt) = v;
+          get<2>(*vertexTuplesIt) = dist;
         }
-        weight = getQubitWeight(overlappedVertexNum + 1, isIn);
       }
+
+      int weight = getQubitWeight(overlappedVertices.size() + 1);
       int distance_through_u = dist + weight;
       if (distance_through_u < min_distance[v])
       {
@@ -207,35 +254,18 @@ void dijkstraComputePaths(int source, Graph &adjacency_list, vector<int> &previo
       }
     }
   }
-}
 
-// find the shortest
-vector<int> DijkstraGetShortestPathTo(
-    int vertex, const std::vector<int> &previous)
-{
-  vector<int> path;
-  for (; vertex != -1; vertex = previous[vertex])
-    path.push_back(vertex);
-  return path;
-}
-
-//create a dummy graph, add a dummy vertex which adjacent to every vertex in the model
-void createDummyGraph(Graph &dummyGraph, Graph &G, Graph &H,
-                      vector<set<int>> &vertexToQubitsMapping,
-                      int currentVertex, int index)
-{
-  dummyGraph = G;
-  dummyGraph.adj.resize(G.order() + 1);
-  dummyGraph.adj[G.order()].resize(0);
-
-  set<int> currentVertexQubits = vertexToQubitsMapping.at(H.adj[currentVertex].at(index));
-
-  for (std::set<int>::iterator it = currentVertexQubits.begin();
-       it != currentVertexQubits.end(); ++it)
+  int sumCost = 0;
+  for (vector<tuple<int, int, int>>::iterator vertexTuplesIt = vertexTuples.begin();
+       vertexTuplesIt != vertexTuples.end(); ++vertexTuplesIt)
   {
-    dummyGraph.addArc(G.order(), *it);
-    dummyGraph.addArc(*it, G.order());
+    sumCost += get<2>(*vertexTuplesIt);
   }
+
+  // Add the cost of root to sum of weights.
+  sumCost += getQubitWeight(
+      qubitToVertexMapping.at(source).size() + 1);
+  return sumCost;
 }
 
 void expand(vector<vector<int>> &qubitToVertexMapping,
@@ -316,7 +346,9 @@ void extendChain(Graph &G, Graph &H, vector<set<int>> &vertexToQubitsMapping,
 
     // If there are sufficient available edges, there is no need to extend current
     // vertex model.
-    if (availableEdgesNum >= std::ceil(ratio * unembeddedNeighborVerticesNum))
+    int avgChainLength = G.adj.size() / H.adj.size();
+    if (availableEdgesNum >= std::ceil(ratio * unembeddedNeighborVerticesNum)
+    || avgChainLength < vertexToQubitsMapping[currentVertex].size())
     {
       break;
     }
@@ -348,49 +380,67 @@ void extendAll(Graph G, Graph H, float ratio,
   }
 }
 
+vector<pair<int, int>> restorePath(int root, vector<int> previous,
+                                   vector<tuple<int, int, int>> vertexTuples)
+{
+  vector<pair<int, int>> path;
+  for (vector<tuple<int, int, int>>::iterator vertexTuplesIt = vertexTuples.begin();
+       vertexTuplesIt != vertexTuples.end(); ++vertexTuplesIt)
+  {
+    int qubit = get<1>(*vertexTuplesIt);
+    bool ignore = true; // ignore the first qubit as it is in neighbor vertex.
+    while (true)
+    {
+      if (!ignore)
+      {
+        path.push_back(make_pair(qubit, get<0>(*vertexTuplesIt)));
+      }
+      ignore = false;
+      if (qubit == root)
+      {
+        break;
+      }
+      qubit = previous[qubit];
+    }
+  }
+  return path;
+}
+
 //find the union paths from root g* to each vertex model
 void updateModels(Graph &G, Graph &H, int root, int currentVertex,
+                  vector<int> previous,
+                  vector<tuple<int, int, int>> vertexTuples,
                   vector<vector<int>> &qubitToVertexMapping,
                   vector<set<int>> &vertexToQubitsMapping,
                   vector<set<int>> &vertexToAvailableEdges,
                   float ratio)
 {
-  map<int, int> vertex_usage;
-  int dist[G.order()];
+  map<int, pair<int, int>> vertex_usage;
+  vector<vector<int>> paths;
+  vector<pair<int, int>> vertexToDistance;
+  // qubit, leaf of path
+  vector<pair<int, int>> path = restorePath(root, previous, vertexTuples);
 
-  vector<int> path;
-  for (int i = 0; i < H.deg(currentVertex); i++)
-  {
-    path.clear();
-    // If
-    if (vertexToQubitsMapping.at(H.adj[currentVertex].at(i)).size() != 0)
+  for (vector<pair<int, int>>::iterator pathIt = path.begin();
+       pathIt != path.end(); pathIt++)
+  { // don't want include the dummy vertex and the vertex in neighbor's map
+    if (vertex_usage.find((*pathIt).first) == vertex_usage.end())
     {
-      Graph dummyGraph(0);
-      createDummyGraph(dummyGraph, G, H, vertexToQubitsMapping, currentVertex, i);
-      vector<int> min_distance;
-      vector<int> previous;
-      dijkstraComputePaths(root, dummyGraph, previous, min_distance,
-                           qubitToVertexMapping, vertexToQubitsMapping, currentVertex);
-      path = DijkstraGetShortestPathTo(G.order(), previous);
+      vertex_usage.insert(
+          pair<int, pair<int, int>>((*pathIt).first,
+                                    pair<int, int>(1, (*pathIt).second))); // if not exist, create a new one
     }
-    for (int j = 2; j < path.size(); j++)
-    { // don't want include the dummy vertex and the vertex in neighbor's map
-      if (vertex_usage.find(path.at(j)) == vertex_usage.end())
-      {
-        vertex_usage.insert(pair<int, int>(path.at(j), 1)); // if not exist, create a new one
-        dist[path.at(j)] = H.adj[currentVertex].at(i);      // destination
-      }
-      else
-      {
-        vertex_usage[path.at(j)]++; // update the usage
-      }
+    else
+    {
+      vertex_usage[(*pathIt).first].first++; // update the usage
     }
   }
 
   std::set<int> affectedVertices;
   //update all vertex models
 
-  for (map<int, int>::iterator ii = vertex_usage.begin(); ii != vertex_usage.end(); ++ii)
+  for (map<int, pair<int, int>>::iterator ii = vertex_usage.begin();
+       ii != vertex_usage.end(); ++ii)
   {
     if ((*ii).first == root)
     {
@@ -399,7 +449,7 @@ void updateModels(Graph &G, Graph &H, int root, int currentVertex,
              currentVertex, G);
       continue;
     }
-    if ((*ii).second > 1)
+    if ((*ii).second.first > 1)
     { // appears in more than one path, assign to new model ****************************
       expand(qubitToVertexMapping, vertexToQubitsMapping,
              vertexToAvailableEdges, affectedVertices, (*ii).first,
@@ -408,18 +458,10 @@ void updateModels(Graph &G, Graph &H, int root, int currentVertex,
 
     else
     { // appears once, update
-      if (find(vertexToQubitsMapping.at(dist[(*ii).first]).begin(),
-               vertexToQubitsMapping.at(dist[(*ii).first]).end(),
-               (*ii).first) == vertexToQubitsMapping.at(dist[(*ii).first]).end())
-      {
-        expand(qubitToVertexMapping, vertexToQubitsMapping,
-               vertexToAvailableEdges, affectedVertices, (*ii).first,
-               dist[(*ii).first], G);
-      }
-      else
-      {
-        cout << "meow";
-      }
+
+      expand(qubitToVertexMapping, vertexToQubitsMapping,
+             vertexToAvailableEdges, affectedVertices, (*ii).first,
+             (*ii).second.second, G);
     }
   }
   extendAll(G, H, ratio, affectedVertices, qubitToVertexMapping,
@@ -510,8 +552,10 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<set<int>> &vertexToQubits
   tearChain(G, H, vertexToQubitsMapping, qubitToVertexMapping, vertexToAvailableEdgesMapping, currentVertex, ratio);
 
   // new improvement:  choose Candidate from first level
-  vector<int> rootCandidate;
-  vector<int> rootCandidateWeight;
+  vector<int> rootCandidates;
+
+  // vector<cost, root, previous, vertextuple
+  vector<tuple<int, int, vector<int>, vector<std::tuple<int, int, int>>>> rootCandidateDetails;
   for (int neighborVertexIndex = 0;
        neighborVertexIndex < H.deg(currentVertex);
        neighborVertexIndex++)
@@ -529,59 +573,30 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<set<int>> &vertexToQubits
       {
         int potentialCandidate = firstLevelQubits.at(potentialCandidateIndex);
         // ------------ Could be improved. -----------------
-        if (find(rootCandidate.begin(),
-                 rootCandidate.end(),
-                 potentialCandidate) == rootCandidate.end() &&
+        if (find(rootCandidates.begin(),
+                 rootCandidates.end(),
+                 potentialCandidate) == rootCandidates.end() &&
             qubitToVertexMapping.at(potentialCandidate).size() == 0) // ?? Should I restrict this?
         {                                                            // if not contain
-          rootCandidate.push_back(potentialCandidate);
+          rootCandidates.push_back(potentialCandidate);
         }
       }
     }
   }
 
-  int cost[rootCandidate.size()][H.deg(currentVertex)];
   int minCost = 1 << 30;
   int root = 0;
-  for (int i = 0; i < rootCandidate.size(); i++)
+  for (int i = 0; i < rootCandidates.size(); i++)
   {
-    int sumCost = 0;
-    int currentRootCandidate = rootCandidate.at(i);
-    for (int j = 0; j < H.deg(currentVertex); j++)
-    {
-      // This vertex not imbedded yet.
-      if (vertexToQubitsMapping.at(H.adj[currentVertex].at(j)).size() == 0)
-      {
-        cost[i][j] = 0;
-      }
-      // Root candidate qubit is overlapped with this vertex.
-      else if (find(vertexToQubitsMapping.at(H.adj[currentVertex].at(j)).begin(),
-                    vertexToQubitsMapping.at(H.adj[currentVertex].at(j)).end(),
-                    currentRootCandidate) !=
-               vertexToQubitsMapping.at(H.adj[currentVertex].at(j)).end())
-      {
-        cost[i][j] = 0;
-      }
-      else
-      {
-        // add a dummy vertex which adjacent to every vertex in the model - compute the distance from a vertex to a vertex-model
-        Graph dummyGraph(0);
-        createDummyGraph(dummyGraph, G, H, vertexToQubitsMapping,
-                         currentVertex, j);
-        vector<int> min_distance;
-        vector<int> previous;
-        dijkstraComputePaths(currentRootCandidate, dummyGraph, previous, min_distance,
-                             qubitToVertexMapping, vertexToQubitsMapping, currentVertex);
-        cost[i][j] = min_distance.at(G.order());
-      }
-      sumCost += cost[i][j];
-      if (sumCost > minCost)
-        break;
-    }
-    // Add the cost of root to sum of weights.
-    sumCost += getQubitWeight(
-        qubitToVertexMapping.at(currentRootCandidate).size() + 1, false);
-    rootCandidateWeight.push_back(sumCost);
+    int currentRootCandidate = rootCandidates.at(i);
+    vector<int> previous;
+    vector<tuple<int, int, int>> vertexTuples;
+    int sumCost = dijkstraComputePaths(currentRootCandidate, currentVertex, G, H,
+                                       previous, vertexTuples,
+                                       qubitToVertexMapping,
+                                       vertexToQubitsMapping);
+    rootCandidateDetails.push_back(make_tuple(
+        sumCost, currentRootCandidate, previous, vertexTuples));
     // find root g* with minimum cost
     if (sumCost <= minCost)
     {
@@ -589,14 +604,16 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<set<int>> &vertexToQubits
     }
   }
 
-  // random get the root from the first level rootCandidate
-  vector<int> candidates;
-  for (int i = 0; i < rootCandidate.size(); i++)
+  // random get the root from the first level rootCandidates
+  vector<tuple<int, int, NLIST, vector<tuple<int, int, int>>>> candidates;
+  for (int i = 0; i < rootCandidates.size(); i++)
   {
-    if (minCost == rootCandidateWeight.at(i))
-      candidates.push_back(rootCandidate.at(i));
+    if (minCost == get<0>(rootCandidateDetails.at(i)))
+      candidates.push_back(rootCandidateDetails.at(i));
   }
 
+  vector<int> previous;
+  vector<tuple<int, int, int>> vertexTuples;
   // random get the root from the candidates
   if (candidates.size() == 0)
   {
@@ -610,6 +627,11 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<set<int>> &vertexToQubits
       if (qubitToVertexMapping.at(qubitOrder.at(i)).size() <= 0)
       { // if no candidates, random choose one
         root = qubitOrder.at(i);
+        vector<int> previous;
+        vector<tuple<int, int, int>> vertexTuples;
+        dijkstraComputePaths(root, currentVertex, G, H,
+                             previous, vertexTuples, qubitToVertexMapping,
+                             vertexToQubitsMapping);
         break;
       }
     }
@@ -617,18 +639,20 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<set<int>> &vertexToQubits
   else
   {
     random_shuffle(candidates.begin(), candidates.end()); // using built-in random generator:
-    root = candidates.at(0);
+    root = get<1>(candidates.at(0));
+    previous = get<2>(candidates.at(0));
+    vertexTuples = get<3>(candidates.at(0));
   }
 
   //find the union paths from root g* to each vertex model
-  updateModels(G, H, root, currentVertex, qubitToVertexMapping,
+  updateModels(G, H, root, currentVertex, previous, vertexTuples, qubitToVertexMapping,
                vertexToQubitsMapping, vertexToAvailableEdgesMapping, ratio);
 }
 
 // main method for finding Minor embedding
 bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
 {
-  srand(unsigned(time(0))); // for randomizing
+  //srand(unsigned(time(0))); // for randomizing
 #if 1
   vector<int> vertexOrder = randomizeVertexOrder(H.order());
 #else
@@ -685,14 +709,14 @@ bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
       }
       if (i == vertexToQubitsMapping.size() - 1)
       {
-        cout << "]";
+        cout << "\b\b]";
       }
       else
       {
-        cout << "], " << endl;
+        cout << "\b\b], ";
       }
     }
-    cout << "]" << endl;
+    cout << "]";
     cout << "Total number of Qubits used is: " << totalQubit << endl;
     cout << "Max chain length is: " << max << endl;
     return true;

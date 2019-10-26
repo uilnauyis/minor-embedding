@@ -357,7 +357,7 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<int> weight, vector<vecto
 // main method for finding Minor embedding
 bool findMinorEmbedding(Graph &G, Graph &H)
 {
-  srand(unsigned(time(0))); // for randomizing
+  //srand(unsigned(time(0))); // for randomizing
 #if 1
   vector<int> vertexOrder = randomizeVertexOrder(H.order());
 #else
@@ -426,10 +426,10 @@ bool findMinorEmbedding(Graph &G, Graph &H)
       }
       else
       {
-        cout << "], " << endl;
+        cout << "], ";
       }
     }
-    cout << "]" << endl;
+    cout << "]";
     cout << "Total number of Qubits used is: " << totalQubit << endl;
     cout << "Max chain length is: " << max << endl;
     return true;
