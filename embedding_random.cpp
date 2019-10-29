@@ -652,7 +652,7 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<set<int>> &vertexToQubits
 // main method for finding Minor embedding
 bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
 {
-  //srand(unsigned(time(0))); // for randomizing
+  srand(unsigned(time(0))); // for randomizing
 #if 1
   vector<int> vertexOrder = randomizeVertexOrder(H.order());
 #else
@@ -661,6 +661,7 @@ bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
   vector<set<int>> vertexToQubitsMapping = initializeSetMapping(H.order());
   vector<vector<int>> qubitsToVerticesMapping = initializeMapping(G.order());
   vector<set<int>> vertexToAvailableEdgesMapping = initializeSetMapping(H.order());
+  vector<set<int>> previousVertexToQubitsMapping;
   int previousChainLength;
   int previousOverlap;
   int currentChainLength;
@@ -670,8 +671,9 @@ bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
   {
     currentChainLength = stage <= 1 ? INT_MAX : getTotalSetSize(vertexToQubitsMapping);
     currentOverlap = stage <= 1 ? INT_MAX : getMaxOverlap(qubitsToVerticesMapping);
+    previousVertexToQubitsMapping = vertexToQubitsMapping;
     if (previousChainLength <= currentChainLength &&
-        previousOverlap <= currentOverlap &&
+        (previousOverlap <= currentOverlap) &&
         stage > 2) // No improvement in last update.
     {
       break;
@@ -688,26 +690,26 @@ bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
   }
 
   //check the usage for each vertex in G, if all <=1, then we find the embedding. otherwise "failure"
-  bool embedding = true;
+  bool embedding = previousOverlap <= 1;
   //print the embedding, if find
   if (embedding)
   {
     int totalQubit = 0;
     int max = 0;
     cout << "[";
-    for (int i = 0; i < vertexToQubitsMapping.size(); i++)
+    for (int i = 0; i < previousVertexToQubitsMapping.size(); i++)
     {
       cout << "[";
-      totalQubit = totalQubit + vertexToQubitsMapping.at(i).size();
-      if (vertexToQubitsMapping.at(i).size() > max)
-        max = vertexToQubitsMapping.at(i).size();
-      for (std::set<int>::iterator it = vertexToQubitsMapping.at(i).begin();
-           it != vertexToQubitsMapping.at(i).end();
+      totalQubit = totalQubit + previousVertexToQubitsMapping.at(i).size();
+      if (previousVertexToQubitsMapping.at(i).size() > max)
+        max = previousVertexToQubitsMapping.at(i).size();
+      for (std::set<int>::iterator it = previousVertexToQubitsMapping.at(i).begin();
+           it != previousVertexToQubitsMapping.at(i).end();
            ++it)
       {
         cout << *it << ", ";
       }
-      if (i == vertexToQubitsMapping.size() - 1)
+      if (i == previousVertexToQubitsMapping.size() - 1)
       {
         cout << "\b\b]";
       }
@@ -730,7 +732,7 @@ bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
 int main(int argc, char **argv)
 {
   clock_t start = clock();
-  ifstream host("host.in");
+  ifstream host("dw2x.alist");
   Graph G(0);
   host >> G;
   Graph H(0);

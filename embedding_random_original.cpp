@@ -357,7 +357,7 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<int> weight, vector<vecto
 // main method for finding Minor embedding
 bool findMinorEmbedding(Graph &G, Graph &H)
 {
-  //srand(unsigned(time(0))); // for randomizing
+  srand(unsigned(time(0))); // for randomizing
 #if 1
   vector<int> vertexOrder = randomizeVertexOrder(H.order());
 #else
@@ -443,7 +443,7 @@ bool findMinorEmbedding(Graph &G, Graph &H)
 int main(int argc, char **argv)
 {
   clock_t start = clock();
-  ifstream host("host.in");
+  ifstream host("dw2x.alist");
   Graph G(0);
   host >> G;
   Graph H(0);
