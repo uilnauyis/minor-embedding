@@ -9,9 +9,9 @@
       "type": "python",
       "request": "launch",
       "args": [
-        "graph2.alist",
-        "host.in",
-        "output.alist"
+        "${workspaceFolder}/alists/clique.alist",
+        "${workspaceFolder}/alists/dw2x.alist",
+        "${workspaceFolder}/alists/output.alist"
       ],
       "program": "${workspaceFolder}/checkembed.py",
       "console": "integratedTerminal"
@@ -23,9 +23,10 @@
       "preLaunchTask": "build embedding_random",
       "program": "${workspaceFolder}/out/embedding_random",
       "args": [
-        "1",
+        "0.5",
+        "${workspaceFolder}/alists/dw2x.alist",
         "<",
-        "graph2.alist"
+        "${workspaceFolder}/alists/clique.alist"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
@@ -47,8 +48,9 @@
       "preLaunchTask": "build embedding_random_original",
       "program": "${workspaceFolder}/out/embedding_random_original",
       "args": [
+        "${workspaceFolder}/alists/dw2x.alist",
         "<",
-        "graph2.alist"
+        "${workspaceFolder}/alists/clique.alist"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
@@ -71,31 +73,7 @@
       "program": "${workspaceFolder}/out/embedding_sort",
       "args": [
         "<",
-        "graph1.alist"
-      ],
-      "stopAtEntry": false,
-      "cwd": "${workspaceFolder}",
-      "environment": [],
-      "externalConsole": false,
-      "MIMode": "gdb",
-      "setupCommands": [
-        {
-          "description": "Enable pretty-printing for gdb",
-          "text": "-enable-pretty-printing",
-          "ignoreFailures": true
-        }
-      ]
-    },
-    {
-      "name": "(gdb) Launch embedding_genetic",
-      "type": "cppdbg",
-      "request": "launch",
-      "preLaunchTask": "build embedding_genetic",
-      "program": "${workspaceFolder}/out/embedding_genetic",
-      "args": [
-        "1.2",
-        "<",
-        "graph1.alist"
+        "${workspaceFolder}/alists/clique.alist"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

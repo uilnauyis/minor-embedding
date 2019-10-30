@@ -407,10 +407,14 @@ bool findMinorEmbedding(Graph &G, Graph &H)
   {
     int totalQubit = 0;
     int max = 0;
+    ofstream writeFile;
+    writeFile.open("./alists/output.alist");
     cout << "[";
+    writeFile << "[";
     for (int i = 0; i < mapping.size(); i++)
     {
       cout << "[";
+      writeFile << "[";
       totalQubit = totalQubit + mapping.at(i).size();
       if (mapping.at(i).size() > max)
         max = mapping.at(i).size();
@@ -418,18 +422,24 @@ bool findMinorEmbedding(Graph &G, Graph &H)
       for (int j = 0; j < mapping.at(i).size() - 1; j++)
       {
         cout << mapping.at(i).at(j) << ", ";
+        writeFile << mapping.at(i).at(j) << ", ";
       }
       cout << mapping.at(i).at(mapping.at(i).size() - 1);
+      writeFile << mapping.at(i).at(mapping.at(i).size() - 1);
       if (i == mapping.size() - 1)
       {
         cout << "]";
+        writeFile << "]";
       }
       else
       {
         cout << "], ";
+        writeFile << "], ";
       }
     }
     cout << "]";
+    writeFile << "]";
+    writeFile.close();
     cout << "Total number of Qubits used is: " << totalQubit << endl;
     cout << "Max chain length is: " << max << endl;
     return true;
@@ -443,7 +453,7 @@ bool findMinorEmbedding(Graph &G, Graph &H)
 int main(int argc, char **argv)
 {
   clock_t start = clock();
-  ifstream host("dw2x.alist");
+  ifstream host(argv[1]);
   Graph G(0);
   host >> G;
   Graph H(0);

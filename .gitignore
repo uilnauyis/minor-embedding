@@ -33,3 +33,6 @@
 
 # Ignore output
 /out
+/playground
+/alists/clique.alist
+/alists/output.alist

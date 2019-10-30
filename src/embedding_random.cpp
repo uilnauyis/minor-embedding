@@ -347,8 +347,7 @@ void extendChain(Graph &G, Graph &H, vector<set<int>> &vertexToQubitsMapping,
     // If there are sufficient available edges, there is no need to extend current
     // vertex model.
     int avgChainLength = G.adj.size() / H.adj.size();
-    if (availableEdgesNum >= std::ceil(ratio * unembeddedNeighborVerticesNum)
-    || avgChainLength < vertexToQubitsMapping[currentVertex].size())
+    if (availableEdgesNum >= std::ceil(ratio * unembeddedNeighborVerticesNum) || avgChainLength < vertexToQubitsMapping[currentVertex].size())
     {
       break;
     }
@@ -696,10 +695,15 @@ bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
   {
     int totalQubit = 0;
     int max = 0;
+    ofstream writeFile;
+    writeFile.open("./alists/output.alist");
     cout << "[";
+    writeFile << "[";
     for (int i = 0; i < previousVertexToQubitsMapping.size(); i++)
     {
       cout << "[";
+      writeFile << "[";
+
       totalQubit = totalQubit + previousVertexToQubitsMapping.at(i).size();
       if (previousVertexToQubitsMapping.at(i).size() > max)
         max = previousVertexToQubitsMapping.at(i).size();
@@ -707,20 +711,34 @@ bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
            it != previousVertexToQubitsMapping.at(i).end();
            ++it)
       {
-        cout << *it << ", ";
+        if (it == previousVertexToQubitsMapping.at(i).begin())
+        {
+          cout << *it;
+          writeFile << *it;
+        }
+        else
+        {
+          cout << ", " << *it;
+          writeFile << ", " << *it;
+        }
       }
       if (i == previousVertexToQubitsMapping.size() - 1)
       {
-        cout << "\b\b]";
+        cout << "]";
+        writeFile << "]";
       }
       else
       {
-        cout << "\b\b], ";
+        cout << "], ";
+        writeFile << "], ";
       }
     }
-    cout << "]";
+    cout << "]" << endl;
+    writeFile << "]" << endl;
     cout << "Total number of Qubits used is: " << totalQubit << endl;
     cout << "Max chain length is: " << max << endl;
+
+    writeFile.close();
     return true;
   }
   else
@@ -732,7 +750,7 @@ bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
 int main(int argc, char **argv)
 {
   clock_t start = clock();
-  ifstream host("dw2x.alist");
+  ifstream host(argv[2]);
   Graph G(0);
   host >> G;
   Graph H(0);
@@ -741,7 +759,7 @@ int main(int argc, char **argv)
   bool foundEmbedding;
   cout << "Guest graph: " << endl;
   cout << H << endl;
-  for (int i = 1; i <= 2; i++)
+  for (int i = 1;; i++)
   {
     cout << "try " << i << ":" << endl;
     foundEmbedding = findMinorEmbedding(G, H, ratio);

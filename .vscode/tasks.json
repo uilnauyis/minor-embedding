@@ -9,9 +9,9 @@
       "command": "/usr/bin/g++",
       "args": [
         "-g",
-        "${workspaceFolder}/embedding_random.cpp",
-        "${workspaceFolder}/Graph.h",
-        "${workspaceFolder}/Graph.cpp",
+        "${workspaceFolder}/src/embedding_random.cpp",
+        "${workspaceFolder}/src/Graph.h",
+        "${workspaceFolder}/src/Graph.cpp",
         "-o",
         "${workspaceFolder}/out/embedding_random"
       ],
@@ -31,9 +31,9 @@
       "command": "/usr/bin/g++",
       "args": [
         "-g",
-        "${workspaceFolder}/embedding_random_original.cpp",
-        "${workspaceFolder}/Graph.h",
-        "${workspaceFolder}/Graph.cpp",
+        "${workspaceFolder}/src/embedding_random_original.cpp",
+        "${workspaceFolder}/src/Graph.h",
+        "${workspaceFolder}/src/Graph.cpp",
         "-o",
         "${workspaceFolder}/out/embedding_random_original"
       ],
@@ -53,33 +53,11 @@
       "command": "/usr/bin/g++",
       "args": [
         "-g",
-        "${workspaceFolder}/embedding_sort.cpp",
-        "${workspaceFolder}/Graph.h",
-        "${workspaceFolder}/Graph.cpp",
+        "${workspaceFolder}/src/embedding_sort.cpp",
+        "${workspaceFolder}/src/Graph.h",
+        "${workspaceFolder}/src/Graph.cpp",
         "-o",
         "${workspaceFolder}/out/embedding_sort"
-      ],
-      "options": {
-        "cwd": "/usr/bin"
-      },
-      "problemMatcher": ["$gcc"],
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "dependsOn": "create output dir"
-    },
-    {
-      "type": "shell",
-      "label": "build embedding_genetic",
-      "command": "/usr/bin/g++",
-      "args": [
-        "-g",
-        "${workspaceFolder}/embedding_genetic.cpp",
-        "${workspaceFolder}/Graph.h",
-        "${workspaceFolder}/Graph.cpp",
-        "-o",
-        "${workspaceFolder}/out/embedding_genetic"
       ],
       "options": {
         "cwd": "/usr/bin"
