@@ -268,6 +268,154 @@ int dijkstraComputePaths(int source, int currentVertex,
   return sumCost;
 }
 
+// Compute shortest paths from current vertex to all neighbor vertices using
+// BFS + Priority queue.
+// Return the total cost as result.
+// 'previous' is the vector for tracing back the path.
+int bfsComputePaths(int source, int currentVertex,
+                    Graph &G, Graph &H,
+                    vector<int> &previous,
+                    vector<tuple<int, int, int>> &vertexTuples, // <vertex, qubit, distance>
+                    vector<vector<int>> &qubitToVertexMapping,
+                    vector<set<int>> &vertexToQubitsMapping)
+{
+  int n = G.order();
+  vector<int> min_distance;
+  min_distance.resize(n, -1); // using '-1' to distinguish unvisited qubits
+  min_distance[source] = 0;
+  previous.clear();
+  vertexTuples.clear();
+  previous.resize(n, -1);
+  vector<pair<int, int>> q; // first: distance, second: qubit
+  set<pair<int, int>> pq;   // first: distance, second: qubit
+
+  for (int j = 0; j < H.deg(currentVertex); j++)
+  {
+    // This vertex not imbedded yet.
+    if (vertexToQubitsMapping.at(H.adj[currentVertex].at(j)).size() == 0)
+    {
+      continue;
+    }
+    // Root candidate qubit is overlapped with this vertex.
+    else if (find(vertexToQubitsMapping.at(H.adj[currentVertex].at(j)).begin(),
+                  vertexToQubitsMapping.at(H.adj[currentVertex].at(j)).end(),
+                  source) !=
+             vertexToQubitsMapping.at(H.adj[currentVertex].at(j)).end())
+    {
+      continue;
+    }
+    else
+    {
+      int thisVertex = H.adj[currentVertex].at(j);
+      vertexTuples.push_back(make_tuple(thisVertex, -1, INT_MAX));
+    }
+  }
+
+  q.push_back(pair<int, int>(0, source));
+  while (q.size() != 0 || pq.size() != 0)
+  {
+    int dist, qubit;
+    if (q.size() == 0 && pq.size() != 0)
+    {
+      dist = pq.begin()->first;
+      qubit = pq.begin()->second;
+      pq.erase(pq.begin());
+    }
+    else if (pq.size() == 0 && q.size() != 0)
+    {
+      dist = q.begin()->first;
+      qubit = q.begin()->second;
+      q.erase(q.begin());
+    }
+    else
+    {
+      if (q.begin()->first < pq.begin()->first)
+      {
+        dist = q.begin()->first;
+        qubit = q.begin()->second;
+        q.erase(q.begin());
+      }
+      else
+      {
+        dist = pq.begin()->first;
+        qubit = pq.begin()->second;
+        pq.erase(pq.begin());
+      }
+    }
+
+    // End the function if dist is already greater than or equal to
+    // the distances to all neighbor vertices.
+    bool canReturn = true;
+    for (vector<tuple<int, int, int>>::iterator vertexTupleIt = vertexTuples.begin();
+         vertexTupleIt != vertexTuples.end(); ++vertexTupleIt)
+    {
+      if (get<2>(*vertexTupleIt) > dist)
+      {
+        canReturn = false;
+        break;
+      }
+    }
+    if (canReturn)
+    {
+      break;
+    }
+
+    // Visit each edge exiting u
+    for (int i = 0; i < G.deg(qubit); i++)
+    {
+      int v = G.adj[qubit].at(i);
+
+      // If v has been visited, ignore
+      if (min_distance[v] != -1)
+      {
+        continue;
+      }
+
+      // Check if this qubit is mapped to any neighbor vertex.
+      // If it is, we update the shortest distance to this vertex
+      vector<int> overlappedVertices = qubitToVertexMapping.at(v);
+      for (vector<tuple<int, int, int>>::iterator vertexTuplesIt = vertexTuples.begin();
+           vertexTuplesIt != vertexTuples.end(); ++vertexTuplesIt)
+      {
+        tuple<int, int, int> &vertexTuple = *vertexTuplesIt;
+        if (find(overlappedVertices.begin(),
+                 overlappedVertices.end(),
+                 get<0>(vertexTuple)) != overlappedVertices.end() &&
+            get<2>(vertexTuple) > dist)
+        {
+          get<1>(*vertexTuplesIt) = v;
+          get<2>(*vertexTuplesIt) = dist;
+        }
+      }
+
+      int weight = getQubitWeight(overlappedVertices.size() + 1);
+      int distance_through_u = dist + weight;
+      min_distance[v] = distance_through_u;
+      previous[v] = qubit;
+      if (weight == 1)
+      {
+        q.push_back(pair<int, int>(distance_through_u, v));
+      }
+      else
+      {
+        pq.insert(pair<int, int>(distance_through_u, v));
+      }
+    }
+  }
+
+  int sumCost = 0;
+  for (vector<tuple<int, int, int>>::iterator vertexTuplesIt = vertexTuples.begin();
+       vertexTuplesIt != vertexTuples.end(); ++vertexTuplesIt)
+  {
+    sumCost += get<2>(*vertexTuplesIt);
+  }
+
+  // Add the cost of root to sum of weights.
+  sumCost += getQubitWeight(
+      qubitToVertexMapping.at(source).size() + 1);
+  return sumCost;
+}
+
 void expand(vector<vector<int>> &qubitToVertexMapping,
             vector<set<int>> &vertexToQubitsMapping,
             vector<set<int>> &vertexToAvailableEdgesMapping,
@@ -590,10 +738,18 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<set<int>> &vertexToQubits
     int currentRootCandidate = rootCandidates.at(i);
     vector<int> previous;
     vector<tuple<int, int, int>> vertexTuples;
-    int sumCost = dijkstraComputePaths(currentRootCandidate, currentVertex, G, H,
-                                       previous, vertexTuples,
-                                       qubitToVertexMapping,
-                                       vertexToQubitsMapping);
+    //int sumCost = dijkstraComputePaths(currentRootCandidate, currentVertex, G, H,
+    //                                   previous, vertexTuples,
+    //                                   qubitToVertexMapping,
+    //                                   vertexToQubitsMapping);
+    int sumCost = bfsComputePaths(currentRootCandidate, currentVertex, G, H,
+                                   previous, vertexTuples,
+                                   qubitToVertexMapping,
+                                   vertexToQubitsMapping);
+    //if (sumCost != sumCost2)
+    //{
+    //  cout << "meow" << endl;
+    //}
     rootCandidateDetails.push_back(make_tuple(
         sumCost, currentRootCandidate, previous, vertexTuples));
     // find root g* with minimum cost
@@ -628,9 +784,16 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<set<int>> &vertexToQubits
         root = qubitOrder.at(i);
         vector<int> previous;
         vector<tuple<int, int, int>> vertexTuples;
-        dijkstraComputePaths(root, currentVertex, G, H,
-                             previous, vertexTuples, qubitToVertexMapping,
-                             vertexToQubitsMapping);
+        //int sumCost = dijkstraComputePaths(root, currentVertex, G, H,
+        //                                   previous, vertexTuples, qubitToVertexMapping,
+        //                                   vertexToQubitsMapping);
+        int sumCost = bfsComputePaths(root, currentVertex, G, H,
+                                       previous, vertexTuples, qubitToVertexMapping,
+                                       vertexToQubitsMapping);
+        //if (sumCost != sumCost2)
+        //{
+        //  cout << "meow" << endl;
+        //}
         break;
       }
     }
