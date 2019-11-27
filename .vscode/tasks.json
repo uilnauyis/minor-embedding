@@ -5,6 +5,28 @@
   "tasks": [
     {
       "type": "shell",
+      "label": "build embedding",
+      "command": "/usr/bin/g++",
+      "args": [
+        "-g",
+        "${workspaceFolder}/src/embedding.cpp",
+        "${workspaceFolder}/src/Graph.h",
+        "${workspaceFolder}/src/Graph.cpp",
+        "-o",
+        "${workspaceFolder}/out/embedding"
+      ],
+      "options": {
+        "cwd": "/usr/bin"
+      },
+      "problemMatcher": ["$gcc"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "dependsOn": "create output dir"
+    },
+    {
+      "type": "shell",
       "label": "build embedding_random",
       "command": "/usr/bin/g++",
       "args": [

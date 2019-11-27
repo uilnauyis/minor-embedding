@@ -743,9 +743,9 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<set<int>> &vertexToQubits
     //                                   qubitToVertexMapping,
     //                                   vertexToQubitsMapping);
     int sumCost = bfsComputePaths(currentRootCandidate, currentVertex, G, H,
-                                   previous, vertexTuples,
-                                   qubitToVertexMapping,
-                                   vertexToQubitsMapping);
+                                  previous, vertexTuples,
+                                  qubitToVertexMapping,
+                                  vertexToQubitsMapping);
     //if (sumCost != sumCost2)
     //{
     //  cout << "meow" << endl;
@@ -788,8 +788,8 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<set<int>> &vertexToQubits
         //                                   previous, vertexTuples, qubitToVertexMapping,
         //                                   vertexToQubitsMapping);
         int sumCost = bfsComputePaths(root, currentVertex, G, H,
-                                       previous, vertexTuples, qubitToVertexMapping,
-                                       vertexToQubitsMapping);
+                                      previous, vertexTuples, qubitToVertexMapping,
+                                      vertexToQubitsMapping);
         //if (sumCost != sumCost2)
         //{
         //  cout << "meow" << endl;
@@ -834,6 +834,10 @@ bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
     currentChainLength = stage <= 1 ? INT_MAX : getTotalSetSize(vertexToQubitsMapping);
     currentOverlap = stage <= 1 ? INT_MAX : getMaxOverlap(qubitsToVerticesMapping);
     previousVertexToQubitsMapping = vertexToQubitsMapping;
+
+    cout << "Current chain length: " << currentChainLength
+         << " current overlap: " << currentOverlap << endl;
+
     if (previousChainLength <= currentChainLength &&
         (previousOverlap <= currentOverlap) &&
         stage > 2) // No improvement in last update.

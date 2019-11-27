@@ -17,6 +17,42 @@
       "console": "integratedTerminal"
     },
     {
+      "name": "Python: Compare embedding with official api",
+      "type": "python",
+      "request": "launch",
+      "args": [
+        "${workspaceFolder}/alists/clique.alist",
+        "${workspaceFolder}/alists/dw2x.alist"
+      ],
+      "program": "${workspaceFolder}/sapi2_embed.py",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "(gdb) Launch embedding",
+      "type": "cppdbg",
+      "request": "launch",
+      "preLaunchTask": "build embedding",
+      "program": "${workspaceFolder}/out/embedding",
+      "args": [
+        "0.5",
+        "${workspaceFolder}/alists/dw2x.alist",
+        "<",
+        "${workspaceFolder}/alists/clique.alist"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
       "name": "(gdb) Launch embedding_random",
       "type": "cppdbg",
       "request": "launch",
@@ -87,6 +123,13 @@
           "ignoreFailures": true
         }
       ]
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Launch Chrome against localhost",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}"
     }
   ]
 }
