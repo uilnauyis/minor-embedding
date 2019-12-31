@@ -17,19 +17,22 @@ inputReader.on('line', (line) => {
   if (!Number.isInteger(n))
     process.exit();
 
-  let lines = '';
-  lines += `${n}\n`;
-  for (let i = 0; i < n; i++) {
-    for (let j = 0; j < n; j++) {
-      lines += j === i ? '' : `${j} `;
-    }
-    lines += '\n';
-  }
+  for (let r = 1; r < n; r++) {
 
-  fs.writeFile("./alists/clique.alist", lines, function (err) {
-    if (err) {
-      return console.log(err);
+    let lines = '';
+    lines += `${r}\n`;
+    for (let i = 0; i < r; i++) {
+      for (let j = 0; j < r; j++) {
+        lines += j === i ? '' : `${j} `;
+      }
+      lines += '\n';
     }
-    console.log("The file was saved!");
-  });
+
+    fs.writeFile(`./alists/clique${r}.alist`, lines, function (err) {
+      if (err) {
+        return console.log(err);
+      }
+      console.log("The file was saved!");
+    });
+  }
 });

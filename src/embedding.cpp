@@ -20,6 +20,14 @@
 #include <functional>
 #include <bits/stdc++.h>
 
+enum RootFindingTechnique
+{
+  Bfs,
+  Dijkstra,
+  Hybrid,
+  Last
+};
+
 // random generator function:
 vector<int> randomizeVertexOrder(int size)
 {
@@ -42,6 +50,17 @@ int getMaxOverlap(vector<vector<int>> qubitsToVerticesMapping)
     max = thisOverlap > max ? thisOverlap : max;
   }
   return max;
+}
+
+int getOverlapNum(vector<vector<int>> qubitsToVerticesMapping)
+{
+  int count = 0;
+  for (int i = 0; i < qubitsToVerticesMapping.size(); i++)
+  {
+    int thisOverlap = qubitsToVerticesMapping.at(i).size();
+    count = thisOverlap > 1 ? count + 1 : count;
+  }
+  return count;
 }
 
 // sort vertex order by size
@@ -133,7 +152,7 @@ int getTotalSetSize(vector<set<int>> mapping)
 // define vertex weight - weight of a vertex in G grows exponentialy with num of vertices of H represented there
 int getQubitWeight(int mappingNum)
 {
-  int DIAMETER = 50;
+  int DIAMETER = 30;
   return pow(DIAMETER, mappingNum - 1);
 }
 
@@ -160,16 +179,15 @@ auto selectrandomFromSet(set<int> set)
   return *it;
 }
 
-int bfsFindRoot(Graph G, Graph H,
-                vector<vector<int>> &qubitToVertexMapping,
-                vector<set<int>> &vertexToQubitsMapping)
+int dijkstraFindRoot(int currentVertex, Graph G, Graph H,
+                     vector<vector<int>> &qubitToVertexMapping,
+                     vector<set<int>> &vertexToQubitsMapping)
 {
   int root = 0;
   int rootMinDistance = INT_MAX;
   int n = G.order();
   vector<int> distance;
   distance.resize(n, 0);
-  unordered_set<int> mappedQubits;
 
   for (int index = 0; index < G.order(); index++)
   {
@@ -179,10 +197,221 @@ int bfsFindRoot(Graph G, Graph H,
     }
   }
 
-  for (int vertex = 0; vertex < H.order(); vertex++)
+  for (vector<int>::iterator vertexIndex = H.adj.at(currentVertex).begin();
+       vertexIndex != H.adj.at(currentVertex).end(); vertexIndex++)
+  //for (int vertex = 0; vertex < H.order(); vertex++)
   {
+    int vertex = *vertexIndex;
     set<int> qubits = vertexToQubitsMapping.at(vertex);
-    vector<pair<int, int>> q; // first: distance, second: qubit
+    set<pair<int, int>> pq; // first: distance, second: qubit
+
+    vector<int> min_distance;
+    min_distance.resize(n, -1);
+
+    for (set<int>::iterator qubitsIt = qubits.begin();
+         qubitsIt != qubits.end(); qubitsIt++)
+    {
+      int qubit = *qubitsIt;
+
+      for (vector<int>::iterator neighborIt = G.adj.at(qubit).begin();
+           neighborIt != G.adj.at(qubit).end(); neighborIt++)
+      {
+        int neighborQubit = *neighborIt;
+        if (find(qubits.begin(), qubits.end(), neighborQubit) == qubits.end())
+        {
+          int overlapCount = qubitToVertexMapping.at(neighborQubit).size();
+          int weight = getQubitWeight(qubitToVertexMapping.at(neighborQubit).size() + 1);
+          min_distance[neighborQubit] = weight;
+          pq.insert(pair<int, int>(min_distance[neighborQubit], neighborQubit));
+        }
+      }
+    }
+
+    while (pq.size() > 0)
+    {
+      int dist = pq.begin()->first;
+      int qubit = pq.begin()->second;
+      pq.erase(pq.begin());
+
+      for (int i = 0; i < G.deg(qubit); i++)
+      {
+        int v = G.adj[qubit].at(i);
+        int overlapCount = qubitToVertexMapping.at(v).size();
+        int weight = getQubitWeight(overlapCount + 1);
+        int newDistance = dist + weight;
+
+        if (min_distance[v] != -1 && min_distance[v] <= newDistance)
+        {
+          continue;
+        }
+
+        pq.erase(make_pair(min_distance[v], v));
+        min_distance[v] = newDistance;
+        pq.insert(pair<int, int>(min_distance[v], v));
+      }
+    }
+
+    for (int i = 0; i < min_distance.size(); i++)
+    {
+      distance[i] += min_distance[i] == -1 ? 0 : min_distance[i];
+    }
+  }
+
+  for (int i = 0; i < distance.size(); i++)
+  {
+    if (distance[i] < rootMinDistance)
+    {
+      rootMinDistance = distance[i];
+      root = i;
+    }
+  }
+  return root;
+}
+
+int bfsFindRoot(int currentVertex, Graph G, Graph H,
+                vector<vector<int>> &qubitToVertexMapping,
+                vector<set<int>> &vertexToQubitsMapping)
+{
+  int root = 0;
+  int rootMinDistance = INT_MAX;
+  int n = G.order();
+  vector<int> distance;
+  distance.resize(n, 0);
+
+  for (int index = 0; index < G.order(); index++)
+  {
+    if (G.adj[index].size() == 0)
+    {
+      distance.at(index) = INT_MAX;
+    }
+  }
+
+  for (vector<int>::iterator vertexIndex = H.adj.at(currentVertex).begin();
+       vertexIndex != H.adj.at(currentVertex).end(); vertexIndex++)
+  //for (int vertex = 0; vertex < H.order(); vertex++)
+  {
+    int vertex = *vertexIndex;
+    set<int> qubits = vertexToQubitsMapping.at(vertex);
+    vector<queue<pair<int, int>>> queues; // first: distance, second: qubit
+
+    vector<int> min_distance;
+    min_distance.resize(n, -1);
+
+    for (set<int>::iterator qubitsIt = qubits.begin();
+         qubitsIt != qubits.end(); qubitsIt++)
+    {
+      int qubit = *qubitsIt;
+
+      for (vector<int>::iterator neighborIt = G.adj.at(qubit).begin();
+           neighborIt != G.adj.at(qubit).end(); neighborIt++)
+      {
+        int neighborQubit = *neighborIt;
+        if (find(qubits.begin(), qubits.end(), neighborQubit) == qubits.end())
+        {
+          int overlapCount = qubitToVertexMapping.at(neighborQubit).size();
+          int weight = getQubitWeight(qubitToVertexMapping.at(neighborQubit).size() + 1);
+          min_distance[neighborQubit] = weight;
+          while (overlapCount + 1 > queues.size())
+          {
+            queue<pair<int, int>> queue;
+            queues.push_back(queue);
+          }
+          queues.at(overlapCount).push(pair<int, int>(min_distance[neighborQubit], neighborQubit));
+        }
+      }
+    }
+
+    while (true)
+    {
+      int dist = -1, qubit = -1, poppedQueueIndex = -1;
+      for (int i = 0; i < queues.size(); i++)
+      {
+        queue<pair<int, int>> queue = queues.at(i);
+        if (queue.size() > 0)
+        {
+          pair<int, int> front = queue.front();
+          if (dist == -1 || dist > front.first)
+          {
+            dist = front.first;
+            qubit = front.second;
+            poppedQueueIndex = i;
+          }
+        }
+      }
+
+      if (dist == -1)
+      { // all queues are empty.
+        break;
+      }
+      queue<pair<int, int>> &thisQueue = queues.at(poppedQueueIndex);
+      thisQueue.pop();
+
+      //
+      //int distance_through_u = dist + weight;
+      // Visit each edge exiting u
+      for (int i = 0; i < G.deg(qubit); i++)
+      {
+        int v = G.adj[qubit].at(i);
+        int overlapCount = qubitToVertexMapping.at(v).size();
+        int weight = getQubitWeight(overlapCount + 1);
+
+        // If v has been visited or has been mapped, ignore
+        if (min_distance[v] != -1)
+        {
+          continue;
+        }
+
+        min_distance[v] = dist + weight;
+        while (overlapCount + 1 > queues.size())
+        {
+          queue<pair<int, int>> queue;
+          queues.push_back(queue);
+        }
+        queues.at(overlapCount).push(pair<int, int>(min_distance[v], v));
+      }
+    }
+
+    for (int i = 0; i < min_distance.size(); i++)
+    {
+      distance[i] += min_distance[i] == -1 ? 0 : min_distance[i];
+    }
+  }
+
+  for (int i = 0; i < distance.size(); i++)
+  {
+    if (distance[i] < rootMinDistance)
+    {
+      rootMinDistance = distance[i];
+      root = i;
+    }
+  }
+  return root;
+}
+
+int hybridFindRoot(int currentVertex, Graph G, Graph H,
+                   vector<vector<int>> &qubitToVertexMapping,
+                   vector<set<int>> &vertexToQubitsMapping)
+{
+  int root = 0;
+  int rootMinDistance = INT_MAX;
+  int n = G.order();
+  vector<int> distance;
+  distance.resize(n, 0);
+
+  for (int index = 0; index < G.order(); index++)
+  {
+    if (G.adj[index].size() == 0)
+    {
+      distance.at(index) = INT_MAX;
+    }
+  }
+
+  for (vector<int>::iterator vertexIndex = H.adj.at(currentVertex).begin();
+       vertexIndex != H.adj.at(currentVertex).end(); vertexIndex++)
+  {
+    int vertex = *vertexIndex;
+    set<int> qubits = vertexToQubitsMapping.at(vertex);
+    queue<pair<int, int>> q; // first: distance, second: qubit
     set<pair<int, int>> pq;   // first: distance, second: qubit
 
     vector<int> min_distance;
@@ -192,7 +421,6 @@ int bfsFindRoot(Graph G, Graph H,
          qubitsIt != qubits.end(); qubitsIt++)
     {
       int qubit = *qubitsIt;
-      mappedQubits.insert(qubit);
 
       for (vector<int>::iterator neighborIt = G.adj.at(qubit).begin();
            neighborIt != G.adj.at(qubit).end(); neighborIt++)
@@ -200,8 +428,15 @@ int bfsFindRoot(Graph G, Graph H,
         int neighborQubit = *neighborIt;
         if (find(qubits.begin(), qubits.end(), neighborQubit) == qubits.end())
         {
-          q.push_back(pair<int, int>(0, neighborQubit));
-          min_distance.at(neighborQubit) = 0;
+          int overlapCount = qubitToVertexMapping.at(neighborQubit).size();
+          int weight = getQubitWeight(qubitToVertexMapping.at(neighborQubit).size() + 1);
+          min_distance.at(neighborQubit) = weight;
+          if (weight == 1)
+            q.push(pair<int, int>(1, neighborQubit));
+          else
+          {
+            pq.insert(pair<int, int>(min_distance[neighborQubit], neighborQubit));
+          }
         }
       }
     }
@@ -217,17 +452,19 @@ int bfsFindRoot(Graph G, Graph H,
       }
       else if (pq.size() == 0 && q.size() != 0)
       {
-        dist = q.begin()->first;
-        qubit = q.begin()->second;
-        q.erase(q.begin());
+        pair<int, int> front = q.front();
+        dist = front.first;
+        qubit = front.second;
+        q.pop();
       }
       else
       {
-        if (q.begin()->first < pq.begin()->first)
+        pair<int, int> front = q.front();
+        if (front.first < pq.begin()->first)
         {
-          dist = q.begin()->first;
-          qubit = q.begin()->second;
-          q.erase(q.begin());
+          dist = front.first;
+          qubit = front.second;
+          q.pop();
         }
         else
         {
@@ -237,28 +474,26 @@ int bfsFindRoot(Graph G, Graph H,
         }
       }
 
-      int weight = getQubitWeight(qubitToVertexMapping.at(qubit).size() + 1);
-      int distance_through_u = dist + weight;
-      // Visit each edge exiting u
       for (int i = 0; i < G.deg(qubit); i++)
       {
         int v = G.adj[qubit].at(i);
+        int overlapCount = qubitToVertexMapping.at(v).size();
+        int weight = getQubitWeight(overlapCount + 1);
+        int newDistance = dist + weight;
 
-        // If v has been visited or has been mapped, ignore
-        if (min_distance[v] != -1 ||
-            find(qubits.begin(), qubits.end(), v) != qubits.end())
+        if (min_distance[v] != -1)
         {
           continue;
         }
 
-        min_distance[v] = distance_through_u;
+        min_distance[v] = newDistance;
         if (weight == 1)
         {
-          q.push_back(pair<int, int>(distance_through_u, v));
+          q.push(pair<int, int>(min_distance[v], v));
         }
         else
         {
-          pq.insert(pair<int, int>(distance_through_u, v));
+          pq.insert(pair<int, int>(min_distance[v], v));
         }
       }
     }
@@ -271,8 +506,7 @@ int bfsFindRoot(Graph G, Graph H,
 
   for (int i = 0; i < distance.size(); i++)
   {
-    if (distance[i] < rootMinDistance &&
-        mappedQubits.find(i) == mappedQubits.end())
+    if (distance[i] < rootMinDistance)
     {
       rootMinDistance = distance[i];
       root = i;
@@ -282,7 +516,7 @@ int bfsFindRoot(Graph G, Graph H,
 }
 
 // Compute shortest paths from current vertex to all neighbor vertices using
-// BFS + Priority queue.
+// multiple FIFO queueS.
 // Return the total cost as result.
 // 'previous' is the vector for tracing back the path.
 int bfsComputePaths(int source, int currentVertex,
@@ -534,8 +768,10 @@ void tearChain(Graph &G, Graph &H, vector<set<int>> &vertexToQubitsMapping,
 //find the minimal vertex model
 void findMinimalVertexModel(Graph &G, Graph &H, vector<set<int>> &vertexToQubitsMapping,
                             vector<vector<int>> &qubitToVertexMapping,
-                            int currentVertex, float ratio)
+                            int currentVertex, float ratio, int rootFindingTechnique)
 {
+  // tear the previous embedding for current vertex.
+  tearChain(G, H, vertexToQubitsMapping, qubitToVertexMapping, currentVertex, ratio);
   // if all neighbors are empty
   if (checkAllNeighbors(H, vertexToQubitsMapping, currentVertex))
   {
@@ -553,10 +789,24 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<set<int>> &vertexToQubits
     }
   }
 
-  // tear the previous embedding for current vertex.
-  tearChain(G, H, vertexToQubitsMapping, qubitToVertexMapping, currentVertex, ratio);
+  int root;
+  if (rootFindingTechnique == Dijkstra)
+  {
+    root = dijkstraFindRoot(currentVertex, G, H, qubitToVertexMapping, vertexToQubitsMapping);
+  }
+  else if (rootFindingTechnique == Bfs)
+  {
+    root = bfsFindRoot(currentVertex, G, H, qubitToVertexMapping, vertexToQubitsMapping);
+  }
+  else
+  {
+    root = hybridFindRoot(currentVertex, G, H, qubitToVertexMapping, vertexToQubitsMapping);
+  }
+  //if (rootD != rootH || rootD != rootB || rootB != rootH)
+  //{
+  //  throw runtime_error("different root found");
+  //}
 
-  int root = bfsFindRoot(G, H, qubitToVertexMapping, vertexToQubitsMapping);
   vector<int> previous;
   vector<tuple<int, int, int>> vertexTuples;
   bfsComputePaths(root, currentVertex, G, H, previous, vertexTuples,
@@ -568,7 +818,7 @@ void findMinimalVertexModel(Graph &G, Graph &H, vector<set<int>> &vertexToQubits
 }
 
 // main method for finding Minor embedding
-bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
+bool findMinorEmbedding(Graph &G, Graph &H, float ratio, int &qubitNumSum, int &maxChainSum, int rootFindingTechnique)
 {
   srand(unsigned(time(0))); // for randomizing
 #if 1
@@ -580,34 +830,41 @@ bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
   vector<vector<int>> qubitsToVerticesMapping = initializeMapping(G.order());
   vector<set<int>> vertexToAvailableEdgesMapping = initializeSetMapping(H.order());
   vector<set<int>> previousVertexToQubitsMapping;
-  int previousChainLength;
-  int previousOverlap;
-  int currentChainLength;
-  int currentOverlap;
+  int previousChainLength = INT_MAX;
+  int previousOverlap = INT_MAX;
+  int previousOverlapNum = INT_MAX;
+  int currentChainLength = INT_MAX;
+  int currentOverlap = INT_MAX;
+  int currentOverlapNum = INT_MAX;
   int stage = 1;
   while (true)
   {
-    currentChainLength = stage <= 1 ? INT_MAX : getTotalSetSize(vertexToQubitsMapping);
-    currentOverlap = stage <= 1 ? INT_MAX : getMaxOverlap(qubitsToVerticesMapping);
-    previousVertexToQubitsMapping = vertexToQubitsMapping;
-
-    std::cout << "Current chain length: " << currentChainLength
-              << " current overlap: " << currentOverlap << endl;
-
     if (previousChainLength <= currentChainLength &&
         (previousOverlap <= currentOverlap) &&
+        (previousOverlapNum <= currentOverlapNum) &&
         stage > 2) // No improvement in last update.
     {
       break;
     }
+
+    previousVertexToQubitsMapping = vertexToQubitsMapping;
+
+    //std::cout << "Current chain length: " << currentChainLength
+    //          << " current overlap: " << currentOverlap
+    //          << " current overlap num: " << currentOverlapNum << endl;
+
     previousChainLength = currentChainLength;
     previousOverlap = currentOverlap;
+    previousOverlapNum = currentOverlapNum;
     for (int i = 0; i < vertexOrder.size(); i++)
     {
       int currentVertex = vertexOrder.at(i);
       findMinimalVertexModel(G, H, vertexToQubitsMapping, qubitsToVerticesMapping,
-                             currentVertex, ratio);
+                             currentVertex, ratio, rootFindingTechnique);
     }
+    currentChainLength = stage <= 1 ? INT_MAX : getTotalSetSize(vertexToQubitsMapping);
+    currentOverlap = stage <= 1 ? INT_MAX : getMaxOverlap(qubitsToVerticesMapping);
+    currentOverlapNum = getOverlapNum(qubitsToVerticesMapping);
     stage++;
   }
 
@@ -619,12 +876,12 @@ bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
     int totalQubit = 0;
     int max = 0;
     ofstream writeFile;
-    writeFile.open("./alists/output.alist");
-    std::cout << "[";
+    writeFile.open("./alists/output.alist", std::ios_base::app);
+    //std::cout << "[";
     writeFile << "[";
     for (int i = 0; i < previousVertexToQubitsMapping.size(); i++)
     {
-      std::cout << "[";
+      //std::cout << "[";
       writeFile << "[";
 
       totalQubit = totalQubit + previousVertexToQubitsMapping.at(i).size();
@@ -636,32 +893,35 @@ bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
       {
         if (it == previousVertexToQubitsMapping.at(i).begin())
         {
-          std::cout << *it;
+          //std::cout << *it;
           writeFile << *it;
         }
         else
         {
-          std::cout << ", " << *it;
+          //std::cout << ", " << *it;
           writeFile << ", " << *it;
         }
       }
       if (i == previousVertexToQubitsMapping.size() - 1)
       {
-        std::cout << "]";
+        //std::cout << "]";
         writeFile << "]";
       }
       else
       {
-        std::cout << "], ";
+        //std::cout << "], ";
         writeFile << "], ";
       }
     }
-    std::cout << "]" << endl;
+    //std::cout << "]" << endl;
     writeFile << "]" << endl;
-    std::cout << "Total number of Qubits used is: " << totalQubit << endl;
-    std::cout << "Max chain length is: " << max << endl;
-
+    //std::cout << "Total number of Qubits used is: " << totalQubit << endl;
+    //std::cout << "Max chain length is: " << max << endl;
     writeFile.close();
+
+    qubitNumSum += totalQubit;
+    maxChainSum += max;
+
     return true;
   }
   else
@@ -672,7 +932,8 @@ bool findMinorEmbedding(Graph &G, Graph &H, float ratio)
 
 int main(int argc, char **argv)
 {
-  clock_t start = clock();
+  clock_t successRunTime = 0;
+
   ifstream host(argv[2]);
   Graph G(0);
   host >> G;
@@ -682,19 +943,36 @@ int main(int argc, char **argv)
   bool foundEmbedding;
   std::cout << "Guest graph: " << endl;
   std::cout << H << endl;
-  for (int i = 1;; i++)
+  for (int rootFindingTechnique = Bfs; rootFindingTechnique < Last; rootFindingTechnique++)
   {
-    std::cout << "try " << i << ":" << endl;
-    foundEmbedding = findMinorEmbedding(G, H, ratio);
-    if (foundEmbedding)
+    int qubitNumSum = 0;
+    int maxChainSum = 0;
+    int successCount = 0;
+    int successRunTime = 0;
+    int ATTEMPSNUM = 100;
+    for (int i = 1; i <= ATTEMPSNUM; i++)
     {
-      break;
+      clock_t start = clock();
+      std::cout << "try " << i << ":" << endl;
+      foundEmbedding = findMinorEmbedding(G, H, ratio, qubitNumSum, maxChainSum, rootFindingTechnique);
+      clock_t end = clock();
+      if (foundEmbedding)
+      {
+        successRunTime += end - start;
+        successCount += 1;
+      }
     }
-  }
-  if (!foundEmbedding)
-    std::cout << "No embedding found" << endl;
 
-  clock_t ends = clock();
-  std::cout << "Running Time : " << (double)(ends - start) / CLOCKS_PER_SEC << endl;
-  return 0;
+    std::stringstream sstm;
+    sstm << "./meow/" << rootFindingTechnique;
+
+    ofstream writeFile(sstm.str(), std::ios_base::app);
+    writeFile << argv[3] << " "
+              << (double)successRunTime / CLOCKS_PER_SEC / successCount << ", "
+              << (double)qubitNumSum / successCount << ", "
+              << (double)maxChainSum / successCount << ", "
+              << (double)successCount / ATTEMPSNUM << "\n";
+    writeFile.close();
+    cout << argv[3];
+  }
 }

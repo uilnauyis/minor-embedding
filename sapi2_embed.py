@@ -4,6 +4,7 @@
 
 from minorminer import find_embedding
 import sys, networkx as nx
+import time
 
 def read_graph(infile=sys.stdin):  # CS220 adjacency list format
     n=int(infile.readline().strip())
@@ -40,7 +41,11 @@ hfile.close()
 
 #Time=1000
 #embeddings = find_embedding(S, set(T), timeout=Time) 
+start = time.time()
 embeddings = find_embedding(S, set(T), verbose=1) 
+end = time.time()
+
+qubitNum = embeddings
 
 #print "embeddings: ", embeddings
 print  embeddings
